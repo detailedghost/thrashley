@@ -195,10 +195,14 @@ Without a policy file, the spice table decides. Spice sets how many findings per
 
 One more than the limit means Request changes. A blank cell has no limit. Nits never block.
 
-With a policy file, the file decides. The verdict then counts the new findings plus every open earlier finding.
-An open finding is a Thrashley thread that is not resolved and has no reply from someone else. Thrashley does not
-post the same finding twice, and it does not post a Medium, Low or Nit finding again on a line whose thread was
-resolved.
+With a policy file, the file decides. The verdict then counts only open findings: the new findings plus every
+open earlier finding. A finding stays open until someone fixes it, answers it in its thread, or resolves the
+thread. When no finding is open, Thrashley approves in every round, strict or relaxed. Earlier blockers that are
+now fixed or answered do not hold the verdict back.
+
+Thrashley does not post the same finding twice, and it does not post a Medium, Low or Nit finding again on a line
+whose thread was resolved. A finding matches an earlier thread only on the same file, line and diff side, so a
+comment on a deleted line never stands in for one on an added line.
 
 Block only on Critical or High, with at most 10 comments and no nits:
 
