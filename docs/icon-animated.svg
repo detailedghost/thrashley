@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-labelledby="title desc">
+  <title id="title">Thrashley: Skeptical review</title>
+  <desc id="desc">A raised eyebrow, a quick blink, and a dry smirk. Motion stops when reduced motion is preferred.</desc>
+  <style>
+    #mascot, #mascot g { transform-box: view-box; }
+    @keyframes blink {
+      0%, 36%, 46%, 100% { transform: none; }
+      40%, 42% { transform: scaleY(.07); }
+    }
+    @keyframes question {
+      0%, 12%, 76%, 100% { transform: none; }
+      23%, 56% { transform: translateY(-15px) rotate(-3deg); }
+    }
+    @keyframes dry-smirk {
+      0%, 18%, 76%, 100% { transform: none; }
+      29%, 56% { transform: rotate(-2deg); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      #eye-left, #eye-right { animation: blink 3.2s ease-in-out infinite; }
+      #brow-right { animation: question 3.2s ease-in-out infinite; }
+      #mouth { animation: dry-smirk 3.2s ease-in-out infinite; }
+    }
+    #eye-left { transform-origin: 367px 608px; }
+    #eye-right { transform-origin: 697px 598px; }
+    #brow-right { transform-origin: 675px 468px; }
+    #mouth { transform-origin: 610px 763px; }
+    @media (prefers-reduced-motion: reduce) {
+      #mascot, #mascot g { animation: none !important; transform: none !important; }
+    }
+  </style>
+  <path id="background" fill="#16191C" d="M0 0H1024V1024H0Z"/>
+  <g id="mascot" fill="#CFFB4D">
+    <g id="ear-antenna-left">
+      <path d="M169 435.8 137.7 451.7 145 507.5 90.4 538.7 114.5 667.3 191 701.4 211 649 187 468Z"/>
+      <path fill="#16191C" d="M156.5 547.3 132.9 557 150 643.3 179.5 650.4Z"/>
+    </g>
+    <g id="ear-antenna-right">
+      <path d="M854.5 435.7 886.1 451.7 879 507.3 933.5 538.4 909.7 666 833.2 701 812 648 837 468Z"/>
+      <path fill="#16191C" d="M867.7 547.1 891.5 556.8 873.7 643.1 844.8 650.2Z"/>
+    </g>
+    <g id="head">
+      <path d="M214.5 322.7 238 313.5 376.5 231.5 454 279.8H575L722 305.5C750 310 786 312 809.6 322.4L854.5 435.7 833.2 701 816.7 764.7 574.5 929.3H445.8L209 766.7 191 701.4 169 435.8Z"/>
+    </g>
+    <g id="hair-bolts">
+      <g id="hair-bolt-left">
+        <path d="M300.4 155.8 463.2 76.9 401.4 149.8 495 192.8 453.7 280.3 376.1 232.2Z"/>
+      </g>
+      <g id="hair-bolt-right">
+        <path d="M574.5 280.3 653.5 242 597.1 173 807.1 117 695.3 189.4 755.6 248.7 721.3 306.3Z"/>
+      </g>
+    </g>
+    <g id="eye-left">
+      <path fill="#16191C" d="M215.9 488 470.5 552.1 497.2 638.3C439 653.4 364 665.7 297.3 677.5L252.5 635.3Z"/>
+      <path d="M254.6 545 451.2 577.2 459 592.1 430.4 586.7 421.8 617.3 409.9 627.3Q391 629.5 371 627L355.3 613.1 349.1 573.2 266 560Z"/>
+    </g>
+    <g id="brow-left">
+      <path fill="#16191C" d="M215.9 488 470.5 552.1 483.6 592.7 451.2 577.2 254.6 545 229.2 544.5Z"/>
+    </g>
+    <g id="eye-right">
+      <path fill="#16191C" d="M585.9 574.5 655.4 554.8 661.9 592.6 673 603.3Q688 605.6 703.8 602.7L714.1 590.2 721 536.5 807.6 512.2 770.7 632.5 644.4 672.4 585.7 630.5Z"/>
+    </g>
+    <g id="brow-right">
+      <path fill="#16191C" d="M572 484.6 749.8 404.8 781.5 456 744.6 447.6 571.3 524.7Z"/>
+    </g>
+    <g id="mouth">
+      <path fill="#16191C" d="M501.7 781.2 719.8 708.1 681.9 780.3 558 795.5Z"/>
+    </g>
+  </g>
+</svg>

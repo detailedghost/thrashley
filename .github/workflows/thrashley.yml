@@ -1,0 +1,39 @@
+---
+name: Thrashley
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: thrashley-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Thrashley review
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    env:
+      HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+    steps:
+      - name: Skip when the Copilot token is not set
+        if: env.HAS_COPILOT_TOKEN != 'true'
+        run: echo "::notice::Set the COPILOT_GITHUB_TOKEN secret to turn on Thrashley review."
+
+      - name: Checkout the base commit (actions/checkout v7.0.1)
+        if: env.HAS_COPILOT_TOKEN == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Review
+        if: env.HAS_COPILOT_TOKEN == 'true'
+        uses: ./
+        with:
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          sass: true

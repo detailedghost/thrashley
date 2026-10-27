@@ -1,0 +1,186 @@
+name: Thrashley
+description: Tiered pull request reviews that approve, request changes or comment, with inline comments and a round-aware summary.
+author: detailedghost
+branding:
+  icon: eye
+  color: green
+
+inputs:
+  github-token:
+    description: Token that reads the PR and posts the review. Use a GitHub App token to post as your own bot.
+    default: ${{ github.token }}
+  copilot-token:
+    description: Fine-grained token with the Copilot Requests permission, from a user with a Copilot seat. Required for the copilot backend.
+    default: ""
+  bot-login:
+    description: Login the review posts as. Rounds and open findings count only this login's reviews and threads.
+    default: github-actions[bot]
+  spice:
+    description: Review depth from 1 to 5. Sets the nit budget, and the verdict when no policy file exists.
+    default: "2"
+  review-rules:
+    description: Path to the review rules doc, read from the base branch and given to the model as context.
+    default: docs/code_review.md
+  policy:
+    description: Path to the verdict policy file, read from the base branch. When it is missing, the spice table decides.
+    default: .github/thrashley.yml
+  verdict:
+    description: "Highest event the review may submit: auto, approve, request-changes or comment."
+    default: auto
+  backend:
+    description: "Model backend: copilot, codex, pi, opencode or grok. Only copilot runs without shell tools."
+    default: copilot
+  model:
+    description: Model name for the backend. Empty uses the backend default.
+    default: ""
+  agent-file:
+    description: Path to a persona Markdown file on the base branch that replaces the thrash persona.
+    default: ""
+  prompt-file:
+    description: Path to a Markdown file on the base branch with extra instructions for every review chunk.
+    default: ""
+  heading:
+    description: Summary heading, without the leading hashes.
+    default: Code Review
+  max-comments:
+    description: Most inline comments per review, highest tier first. Overrides the policy file.
+    default: ""
+  sass:
+    description: Add one line from a fixed list of code jokes to the summary. It never changes the verdict.
+    default: "false"
+  dry-run:
+    description: Review and compile, but post nothing.
+    default: "false"
+  fail-on-request-changes:
+    description: Fail the job when the verdict is request changes, so the job can be a required check.
+    default: "true"
+  review-forks:
+    description: Review PRs from forks. The pull_request event gives forks no secrets, so this rarely works.
+    default: "false"
+  unsafe-allow-shell:
+    description: Allow a backend other than copilot, which keeps its shell tools. Use only when you trust every PR author.
+    default: "false"
+  dg-skills-version:
+    description: dg-skills release that runs the review.
+    default: 1.21.0
+  copilot-cli-version:
+    description: GitHub Copilot CLI version for the copilot backend.
+    default: 1.0.103
+
+outputs:
+  skipped:
+    description: true when the PR was skipped, such as a PR from a fork.
+    value: ${{ steps.gate.outputs.run == 'true' && steps.prepare.outputs.skipped || 'true' }}
+  round:
+    description: This review's round number.
+    value: ${{ steps.prepare.outputs.round }}
+  verdict:
+    description: approve, request_changes or comment.
+    value: ${{ steps.publish.outputs.verdict }}
+  tally:
+    description: Findings per tier, as JSON.
+    value: ${{ steps.publish.outputs.tally }}
+  review-url:
+    description: Link to the posted review.
+    value: ${{ steps.publish.outputs.review-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check whether to review
+      id: gate
+      shell: bash
+      env:
+        HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        REVIEW_FORKS: ${{ inputs.review-forks }}
+      run: |
+        if [ "$HEAD_REPO" = "$GITHUB_REPOSITORY" ] || [ "$REVIEW_FORKS" = "true" ]; then
+          echo "run=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::notice::Thrashley skips this PR from fork $HEAD_REPO; set review-forks: true to review forks."
+          echo "run=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Install dg-skills and the backend CLI
+      id: install
+      if: steps.gate.outputs.run == 'true'
+      shell: bash
+      env:
+        DG_SKILLS_VERSION: ${{ inputs.dg-skills-version }}
+        COPILOT_CLI_VERSION: ${{ inputs.backend == 'copilot' && inputs.copilot-cli-version || '' }}
+        BIN_DIR: ${{ runner.temp }}/thrashley/bin
+      run: '"$GITHUB_ACTION_PATH/scripts/install.sh"'
+
+    - name: Prepare
+      id: prepare
+      if: steps.gate.outputs.run == 'true'
+      shell: bash
+      env:
+        THRASHLEY_WORK: ${{ runner.temp }}/thrashley
+        THRASHLEY_SPICE: ${{ inputs.spice }}
+        THRASHLEY_REVIEW_RULES: ${{ inputs.review-rules }}
+        THRASHLEY_POLICY: ${{ inputs.policy }}
+        THRASHLEY_VERDICT: ${{ inputs.verdict }}
+        THRASHLEY_BACKEND: ${{ inputs.backend }}
+        THRASHLEY_MODEL: ${{ inputs.model }}
+        THRASHLEY_AGENT_FILE: ${{ inputs.agent-file }}
+        THRASHLEY_PROMPT_FILE: ${{ inputs.prompt-file }}
+        THRASHLEY_HEADING: ${{ inputs.heading }}
+        THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
+        THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
+        THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
+        THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
+        THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
+        THRASHLEY_UNSAFE_ALLOW_SHELL: ${{ inputs.unsafe-allow-shell }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: '"$THRASHLEY_DG_SKILLS" thrash action prepare'
+
+    - name: Review
+      if: steps.gate.outputs.run == 'true'
+      shell: bash
+      env:
+        THRASHLEY_WORK: ${{ runner.temp }}/thrashley
+        THRASHLEY_SPICE: ${{ inputs.spice }}
+        THRASHLEY_REVIEW_RULES: ${{ inputs.review-rules }}
+        THRASHLEY_POLICY: ${{ inputs.policy }}
+        THRASHLEY_VERDICT: ${{ inputs.verdict }}
+        THRASHLEY_BACKEND: ${{ inputs.backend }}
+        THRASHLEY_MODEL: ${{ inputs.model }}
+        THRASHLEY_AGENT_FILE: ${{ inputs.agent-file }}
+        THRASHLEY_PROMPT_FILE: ${{ inputs.prompt-file }}
+        THRASHLEY_HEADING: ${{ inputs.heading }}
+        THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
+        THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
+        THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
+        THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
+        THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
+        THRASHLEY_UNSAFE_ALLOW_SHELL: ${{ inputs.unsafe-allow-shell }}
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-token }}
+      run: '"$THRASHLEY_DG_SKILLS" thrash action review'
+
+    - name: Publish
+      id: publish
+      if: steps.gate.outputs.run == 'true'
+      shell: bash
+      env:
+        THRASHLEY_WORK: ${{ runner.temp }}/thrashley
+        THRASHLEY_SPICE: ${{ inputs.spice }}
+        THRASHLEY_REVIEW_RULES: ${{ inputs.review-rules }}
+        THRASHLEY_POLICY: ${{ inputs.policy }}
+        THRASHLEY_VERDICT: ${{ inputs.verdict }}
+        THRASHLEY_BACKEND: ${{ inputs.backend }}
+        THRASHLEY_MODEL: ${{ inputs.model }}
+        THRASHLEY_AGENT_FILE: ${{ inputs.agent-file }}
+        THRASHLEY_PROMPT_FILE: ${{ inputs.prompt-file }}
+        THRASHLEY_HEADING: ${{ inputs.heading }}
+        THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
+        THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
+        THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
+        THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
+        THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
+        THRASHLEY_UNSAFE_ALLOW_SHELL: ${{ inputs.unsafe-allow-shell }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: '"$THRASHLEY_DG_SKILLS" thrash action publish'

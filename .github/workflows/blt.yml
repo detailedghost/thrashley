@@ -1,0 +1,45 @@
+---
+name: BLT
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Does it lint?
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (actions/checkout v7.0.1)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Lint the workflows (actionlint 1.7.12)
+        run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 && ./actionlint -color
+      - name: Lint the scripts
+        run: shellcheck scripts/*.sh
+
+  test:
+    name: Does it test well?
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (actions/checkout v7.0.1)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install the pinned dg-skills and Copilot CLI
+        env:
+          BIN_DIR: ${{ runner.temp }}/thrashley/bin
+        run: |
+          DG_SKILLS_VERSION=$(yq '.inputs."dg-skills-version".default' action.yml) \
+          COPILOT_CLI_VERSION=$(yq '.inputs."copilot-cli-version".default' action.yml) \
+          scripts/install.sh
+      - name: Check the action subcommand exists
+        run: |
+          "$THRASHLEY_DG_SKILLS" thrash --help | grep -q "action"
+          copilot --version

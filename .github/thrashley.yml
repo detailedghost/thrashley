@@ -1,0 +1,4 @@
+maxComments: 10
+phases:
+  - nits: false
+    block: { critical: 0, high: 0 }
