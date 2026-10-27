@@ -38,57 +38,31 @@ posts inline comments that start with a tier, a summary in a fixed shape, and a 
 - A GitHub repo where you can add workflows and secrets.
 - A model backend. The default is GitHub Copilot, which needs a user with a Copilot seat.
 - Optional: a review rules doc (`docs/code_review.md`) and a policy file (`.github/thrashley.yml`). See
-  [Verdict and rounds](#verdict-and-rounds).
+  [Add your own rules](#add-your-own-rules).
 
 ### Setup
 
-1. Choose the identity that posts the review.
-
-   **Option A (recommended): a GitHub App.** The review posts as your own bot, for example `thrashley[bot]`.
-
-   1. Create a GitHub App in your account or organization settings, under **Developer settings → GitHub Apps**.
-      Give it a name, turn off the webhook, and set these repository permissions:
-      - **Pull requests:** Read and write
-      - **Contents:** Read
-      - **Metadata:** Read
-   1. Generate a private key and note the App ID.
-   1. Install the App on the repos that Thrashley will review.
-   1. Add two secrets to the repo or the organization: `THRASHLEY_APP_ID` and `THRASHLEY_APP_PRIVATE_KEY`.
-
-   **Option B: the default `GITHUB_TOKEN`.** The review posts as `github-actions[bot]`. Go to **Settings →
-   Actions → General → Workflow permissions** and turn on **Allow GitHub Actions to create and approve pull
-   requests**. In an organization, an owner must allow it at the organization level first.
-
-> [!NOTE]
-> Without that setting, GitHub refuses the approval. Thrashley then posts the review as a comment, and the summary
-> still states the verdict.
-
-1. Decide whether a Thrashley approval counts toward the required review.
-
-   **It counts:** in the branch ruleset, require one approval and turn off **Require review from Code Owners**. GitHub
-   counts an approval from a reviewer with write access, and a GitHub App with the permissions above has it. Open a
-   test PR and check that the Thrashley approval meets the rule before you rely on it.
-
-   **It does not count:** keep **Require review from Code Owners**, or require an approval from a person. Then add
-   the Thrashley job as a required status check. The job fails when the verdict is Request changes, so it still
-   blocks a bad PR.
-
-> [!WARNING]
-> When the approval counts, no person needs to approve a PR. Choose this only when the team agrees to it.
-
-1. Add the model credential. For the default Copilot backend, create a fine-grained personal access token with the
-   **Copilot Requests** permission, from a user with a Copilot seat. A dedicated service user keeps the cost on one
-   seat. Save it as the `COPILOT_GITHUB_TOKEN` secret.
+Every setup needs the model credential. For the default Copilot backend, create a fine-grained personal access
+token with the **Copilot Requests** permission, from a user with a Copilot seat. A dedicated service user keeps the
+cost on one seat. Save it as the `COPILOT_GITHUB_TOKEN` secret.
 
 > [!NOTE]
 > Copilot bills requests to a user's seat, so use a token from a user. Thrashley is tested with a user token passed
 > only through `COPILOT_GITHUB_TOKEN`.
 
-1. Add the workflow in [Usage](#usage).
+Then pick a setup mode. They go from the least work to the most control.
 
-### Usage
+| Mode | Posts as | Can approve | Extra setup |
+| --- | --- | --- | --- |
+| [1. Quick start](#mode-1-quick-start) | `github-actions[bot]` | No, approvals post as comments | None |
+| [2. Advisory only](#mode-2-advisory-only) | `github-actions[bot]` | No, it never votes | One input |
+| [3. Default token that approves](#mode-3-default-token-that-approves) | `github-actions[bot]` | Yes | One repo setting |
+| [4. Your own bot](#mode-4-your-own-bot-github-app) | `<your-app>[bot]` | Yes | A GitHub App and two secrets |
 
-With a GitHub App (Option A):
+After the mode, decide [whether a Thrashley approval counts](#make-the-approval-count-or-not) toward the required
+review.
+
+All modes use this workflow shell. Each mode below shows only the steps that change.
 
 ```yaml
 name: Thrashley
@@ -110,6 +84,84 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
+      - name: Review
+        uses: detailedghost/thrashley@v1
+        with:
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+```
+
+> [!NOTE]
+> Thrashley does not need `actions/checkout`. It reads the diff, the rules doc and the policy file through the
+> API, from the PR's base commit, so a PR cannot change the rules that review it.
+
+<details>
+<summary><strong>Mode 1: Quick start</strong> (easiest)</summary>
+
+#### Mode 1: Quick start
+
+1. Add the `COPILOT_GITHUB_TOKEN` secret.
+1. Save the workflow shell above as `.github/workflows/thrashley.yml`.
+
+The review posts as `github-actions[bot]` with the default `GITHUB_TOKEN`. GitHub does not let that token approve
+a PR unless you change a setting, so an approval posts as a comment. The summary still states the verdict.
+
+To try it with no risk, add `dry-run: true`. The job then writes the review to the step summary and posts nothing.
+
+</details>
+
+<details>
+<summary><strong>Mode 2: Advisory only</strong></summary>
+
+#### Mode 2: Advisory only
+
+Use this when you want the comments and the summary, but no vote on the PR.
+
+```yaml
+      - name: Review
+        uses: detailedghost/thrashley@v1
+        with:
+          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          verdict: comment
+```
+
+Every review posts as a comment, and the job never fails on the verdict.
+
+</details>
+
+<details>
+<summary><strong>Mode 3: Default token that approves</strong></summary>
+
+#### Mode 3: Default token that approves
+
+1. Use the workflow shell above, with no changes.
+1. Go to **Settings → Actions → General → Workflow permissions** and turn on **Allow GitHub Actions to create and
+   approve pull requests**. In an organization, an owner must allow it at the organization level first.
+
+The review posts as `github-actions[bot]` and can now approve. Every workflow in the repo that uses
+`GITHUB_TOKEN` can approve PRs too, so prefer Mode 4 in a shared repo.
+
+</details>
+
+<details>
+<summary><strong>Mode 4: Your own bot (GitHub App)</strong> (recommended for teams)</summary>
+
+#### Mode 4: Your own bot (GitHub App)
+
+The review posts as your own bot, for example `thrashley[bot]`. Only this App can approve, and you can name it in a
+ruleset.
+
+1. Create a GitHub App in your account or organization settings, under **Developer settings → GitHub Apps**. Give it
+   a name, turn off the webhook, and set these repository permissions:
+   - **Pull requests:** Read and write
+   - **Contents:** Read
+   - **Metadata:** Read
+1. Generate a private key and note the App ID.
+1. Install the App on the repos that Thrashley will review.
+1. Add two secrets to the repo or the organization: `THRASHLEY_APP_ID` and `THRASHLEY_APP_PRIVATE_KEY`.
+1. Replace the steps in the workflow shell with these:
+
+```yaml
+    steps:
       - name: Get the app token
         id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510
@@ -125,18 +177,42 @@ jobs:
           copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 ```
 
-With `GITHUB_TOKEN` (Option B), drop the app token step:
+`bot-login` must match the App, because rounds and open findings count only that login's reviews.
 
-```yaml
-      - name: Review
-        uses: detailedghost/thrashley@v1
-        with:
-          copilot-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}
-```
+</details>
 
-> [!NOTE]
-> Thrashley does not need `actions/checkout`. It reads the diff, the rules doc and the policy file through the
-> API, from the PR's base commit, so a PR cannot change the rules that review it.
+<details>
+<summary><strong>Make the approval count, or not</strong></summary>
+
+#### Make the approval count, or not
+
+This applies to Mode 3 and Mode 4.
+
+**It counts:** in the branch ruleset, require one approval and turn off **Require review from Code Owners**. GitHub
+counts an approval from a reviewer with write access, and a GitHub App with the permissions above has it. Open a
+test PR and check that the Thrashley approval meets the rule before you rely on it.
+
+**It does not count:** keep **Require review from Code Owners**, or require an approval from a person. Then add the
+`Thrashley review` job as a required status check. The job fails when the verdict is Request changes, so it still
+blocks a bad PR.
+
+> [!WARNING]
+> When the approval counts, no person needs to approve a PR. Choose this only when the team agrees to it.
+
+</details>
+
+<details>
+<summary><strong>Add your own rules</strong> (any mode)</summary>
+
+#### Add your own rules
+
+- `docs/code_review.md` tells the model what to check and how to word comments. Set another path with
+  `review-rules`.
+- `.github/thrashley.yml` sets the verdict rules, such as strict early rounds and a comment cap. See
+  [Verdict and rounds](#verdict-and-rounds).
+- To use another model backend, see [Swap the backend](#swap-the-backend).
+
+</details>
 
 ## Inputs
 
@@ -280,7 +356,7 @@ See [SECURITY.md](SECURITY.md) to report a problem.
 
 | Message | Fix |
 | --- | --- |
-| `GitHub Actions is not permitted to approve pull requests` | Turn on the setting in Setup, Option B. Until then the review posts as a comment. |
+| `GitHub Actions is not permitted to approve pull requests` | Use [Mode 3](#mode-3-default-token-that-approves) or [Mode 4](#mode-4-your-own-bot-github-app). Until then the review posts as a comment. |
 | `Can not approve your own pull request` | The bot opened the PR. The review posts as a comment, and the summary states the verdict. |
 | `the copilot backend needs the copilot-token input` | Add the `COPILOT_GITHUB_TOKEN` secret and pass it. |
 | `backend … cannot run without shell tools` | Use `copilot`, or set `unsafe-allow-shell: true`. |
