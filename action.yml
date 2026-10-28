@@ -1,4 +1,4 @@
-name: Thrashley
+name: Thrashley Code Review
 description: Tiered pull request reviews that approve, request changes or comment, with inline comments and a round-aware summary.
 author: detailedghost
 branding:
