@@ -8,7 +8,7 @@ This repo's default branch is `master`. In this guide, "the default branch" mean
 
 Make a branch from the default branch. Never commit to the default branch directly.
 
-This repo holds `action.yml`, one install script and the docs. The review code lives in
+This repo holds `action.yml`, the install and release scripts, and the docs. The review code lives in
 [dg-ai](https://github.com/detailedghost/dg-ai) as `dg-skills thrash action`, and the action installs a pinned
 release of it.
 
@@ -19,6 +19,7 @@ Use these commands for every lint and test step. The BLT workflow runs the same 
 | Lint the workflows | `actionlint` |
 | Lint the scripts | `shellcheck scripts/*.sh` |
 | Test the install | `DG_SKILLS_VERSION=<version> BIN_DIR=/tmp/thrashley GITHUB_ENV=/dev/null scripts/install.sh` |
+| Test the release script | `bun test scripts` |
 
 A change to how a review runs, its tiers, its verdict or its summary belongs in dg-ai first. Then bump
 `dg-skills-version` in `action.yml` here.
@@ -76,10 +77,14 @@ block a merge; see [the code review rules](code_review.md).
 
 Users pin a tag, such as `detailedghost/thrashley@v1`.
 
-1. A maintainer pushes a semver tag, such as `v1.2.0`, on the default branch.
-1. The **Release** workflow runs BLT again, creates a GitHub release with generated notes, and moves the major tag
-   (`v1`) to the new commit.
+1. A maintainer runs the **Release** workflow from `master` and picks `patch`, `minor` or `major`.
+1. The workflow runs BLT again. `scripts/release.ts` finds the last `v*.*.*` tag, bumps it, and writes the release
+   notes from the Conventional Commit subjects since that tag, grouped by type.
+1. The workflow tags `master`, creates the GitHub release with those notes, and moves the major tag (`v1`) to it.
 1. Every workflow that pins `@v1` gets the new release on its next run.
+
+GitHub has no API to list a release in the Marketplace. To list it, edit the release on GitHub and check **Publish
+this Action to the GitHub Marketplace**.
 
 ## How do I undo a release?
 

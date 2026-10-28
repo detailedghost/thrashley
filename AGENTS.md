@@ -1,7 +1,7 @@
 # AGENTS.md — thrashley
 
 Composite GitHub Action. Installs a pinned dg-skills release and runs `dg-skills thrash action prepare|review|publish`.
-All review code lives in dg-ai (`pkg/skills-cli/src/thrash/action/`); this repo is `action.yml`, one script, docs.
+All review code lives in dg-ai (`pkg/skills-cli/src/thrash/action/`); this repo is `action.yml`, the install and release scripts, docs.
 
 ## Files
 
@@ -9,6 +9,7 @@ All review code lives in dg-ai (`pkg/skills-cli/src/thrash/action/`); this repo 
 |------|------|
 | `action.yml` | inputs, outputs, steps; per-step secrets; fork gate |
 | `scripts/install.sh` | dg-skills download + SHA256SUMS check; Copilot CLI npm install in parallel |
+| `scripts/release.ts` | Release workflow: next semver tag + notes grouped by Conventional Commit type |
 | `.github/thrashley.yml` | this repo's review policy |
 
 ## Commands
@@ -16,7 +17,7 @@ All review code lives in dg-ai (`pkg/skills-cli/src/thrash/action/`); this repo 
 | Purpose | Command |
 |---------|---------|
 | Lint | `actionlint`, `shellcheck scripts/*.sh` |
-| Test | `scripts/install.sh` with `DG_SKILLS_VERSION`, `BIN_DIR`, `GITHUB_ENV` set |
+| Test | `bun test scripts`; `scripts/install.sh` with `DG_SKILLS_VERSION`, `BIN_DIR`, `GITHUB_ENV` set |
 
 ## Rules
 
