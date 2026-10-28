@@ -35,10 +35,24 @@ if ! grep -E "[ *]${asset}\$" SHA256SUMS | sha256sum --check --status; then
 fi
 mv "$asset" dg-skills
 chmod +x dg-skills
-echo "THRASHLEY_DG_SKILLS=$BIN_DIR/dg-skills" >> "$GITHUB_ENV"
+if [ -n "${GITHUB_ENV:-}" ]; then
+  echo "THRASHLEY_DG_SKILLS=$BIN_DIR/dg-skills" >> "$GITHUB_ENV"
+fi
+
+if [ -n "${GLAB_VERSION:-}" ]; then
+  deb="glab_${GLAB_VERSION}_linux_$(dpkg --print-architecture).deb"
+  glab_base="https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads"
+  curl -fsSL --retry 3 --retry-delay 5 -o "$deb" "$glab_base/$deb"
+  curl -fsSL --retry 3 --retry-delay 5 -o glab-checksums.txt "$glab_base/checksums.txt"
+  if ! grep -E "[ *]${deb}\$" glab-checksums.txt | sha256sum --check --status; then
+    echo "::error::$deb does not match the checksums of glab v${GLAB_VERSION}"
+    exit 1
+  fi
+  dpkg -i "$deb" >/dev/null
+fi
 
 if [ -n "$copilot_pid" ] && ! wait "$copilot_pid"; then
   echo "::error::npm install @github/copilot@${COPILOT_CLI_VERSION} failed"
   exit 1
 fi
-echo "Installed dg-skills ${DG_SKILLS_VERSION}${COPILOT_CLI_VERSION:+ and @github/copilot@${COPILOT_CLI_VERSION}}"
+echo "Installed dg-skills ${DG_SKILLS_VERSION}${COPILOT_CLI_VERSION:+, @github/copilot@${COPILOT_CLI_VERSION}}${GLAB_VERSION:+, glab ${GLAB_VERSION}}"

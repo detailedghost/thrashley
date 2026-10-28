@@ -1,0 +1,32 @@
+thrashley:
+  stage: test
+  image: node:22-bookworm
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_STRATEGY: none
+    THRASHLEY_REF: v1
+    DG_SKILLS_VERSION: 1.23.0
+    COPILOT_CLI_VERSION: 1.0.103
+    GLAB_VERSION: 1.123.0
+    THRASHLEY_POLICY: .gitlab/thrashley.yml
+    THRASHLEY_WORK: /tmp/thrashley
+  script:
+    - |
+      set -euo pipefail
+      if [ -z "${THRASHLEY_GITLAB_TOKEN:-}" ]; then
+        echo "Thrashley error: set the THRASHLEY_GITLAB_TOKEN CI/CD variable to a token with the api scope"
+        exit 1
+      fi
+      export BIN_DIR="$THRASHLEY_WORK/bin" GITLAB_HOST="$CI_SERVER_HOST"
+      curl -fsSL --retry 3 -o /tmp/thrashley-install.sh \
+        "https://raw.githubusercontent.com/detailedghost/thrashley/${THRASHLEY_REF}/scripts/install.sh"
+      bash /tmp/thrashley-install.sh
+      dg="$BIN_DIR/dg-skills"
+      review_env=(PATH="$PATH" HOME="$HOME" COPILOT_GITHUB_TOKEN="${COPILOT_GITHUB_TOKEN:-}")
+      for name in $(compgen -e | grep '^THRASHLEY_' | grep -vx THRASHLEY_GITLAB_TOKEN); do
+        review_env+=("$name=${!name}")
+      done
+      env -u COPILOT_GITHUB_TOKEN GITLAB_TOKEN="$THRASHLEY_GITLAB_TOKEN" "$dg" thrash action prepare
+      env -i "${review_env[@]}" "$dg" thrash action review
+      env -u COPILOT_GITHUB_TOKEN GITLAB_TOKEN="$THRASHLEY_GITLAB_TOKEN" "$dg" thrash action publish
