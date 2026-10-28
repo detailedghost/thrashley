@@ -20,13 +20,17 @@ if [ -n "${COPILOT_CLI_VERSION:-}" ]; then
   copilot_pid=$!
 fi
 
-base="https://github.com/detailedghost/dg-ai/releases/download/skills-v${DG_SKILLS_VERSION}"
+tag="v${DG_SKILLS_VERSION}"
+if [ "$(printf '%s\n' "$DG_SKILLS_VERSION" 1.22.0 | sort -V | head -n 1)" != 1.22.0 ]; then
+  tag="skills-v${DG_SKILLS_VERSION}"
+fi
+base="https://github.com/detailedghost/dg-ai/releases/download/${tag}"
 mkdir -p "$BIN_DIR"
 cd "$BIN_DIR"
 curl -fsSL --retry 3 --retry-delay 5 -o "$asset" "$base/$asset"
 curl -fsSL --retry 3 --retry-delay 5 -o SHA256SUMS "$base/SHA256SUMS"
 if ! grep -E "[ *]${asset}\$" SHA256SUMS | sha256sum --check --status; then
-  echo "::error::$asset does not match the SHA256SUMS of skills-v${DG_SKILLS_VERSION}"
+  echo "::error::$asset does not match the SHA256SUMS of ${tag}"
   exit 1
 fi
 mv "$asset" dg-skills

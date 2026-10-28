@@ -48,6 +48,9 @@ inputs:
   sass:
     description: Add one line from a fixed list of code jokes to the summary. It never changes the verdict.
     default: "false"
+  improvements:
+    description: Post up to 3 optional improvement ideas, such as a cleanup or a newer API. They never change the verdict.
+    default: "false"
   dry-run:
     description: Review and compile, but post nothing.
     default: "false"
@@ -62,7 +65,7 @@ inputs:
     default: "false"
   dg-skills-version:
     description: dg-skills release that runs the review.
-    default: 1.21.0
+    default: 1.23.0
   copilot-cli-version:
     description: GitHub Copilot CLI version for the copilot backend.
     default: 1.0.103
@@ -129,6 +132,7 @@ runs:
         THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
         THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
         THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_IMPROVEMENTS: ${{ inputs.improvements }}
         THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
         THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
         THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
@@ -153,6 +157,7 @@ runs:
         THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
         THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
         THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_IMPROVEMENTS: ${{ inputs.improvements }}
         THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
         THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
         THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
@@ -178,6 +183,7 @@ runs:
         THRASHLEY_BOT_LOGIN: ${{ inputs.bot-login }}
         THRASHLEY_MAX_COMMENTS: ${{ inputs.max-comments }}
         THRASHLEY_SASS: ${{ inputs.sass }}
+        THRASHLEY_IMPROVEMENTS: ${{ inputs.improvements }}
         THRASHLEY_DRY_RUN: ${{ inputs.dry-run }}
         THRASHLEY_FAIL_ON_REQUEST_CHANGES: ${{ inputs.fail-on-request-changes }}
         THRASHLEY_REVIEW_FORKS: ${{ inputs.review-forks }}
