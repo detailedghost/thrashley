@@ -1,9 +1,19 @@
----
 name: Release
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -13,8 +23,9 @@ jobs:
     uses: ./.github/workflows/blt.yml
 
   release:
-    name: Publish the release
+    name: Tag and release
     needs: blt
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -23,14 +34,31 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+      - name: Setup Bun (oven-sh/setup-bun v2.2.0)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - name: Write the release notes
+        id: notes
+        env:
+          BUMP: ${{ inputs.bump }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md
+        run: bun scripts/release.ts
+      - name: Tag the release
+        env:
+          TAG: ${{ steps.notes.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "refs/tags/$TAG"
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --generate-notes --verify-tag
+          TAG: ${{ steps.notes.outputs.tag }}
+          NOTES_FILE: ${{ runner.temp }}/release-notes.md
+        run: gh release create "$TAG" --title "Release $TAG" --notes-file "$NOTES_FILE" --verify-tag
       - name: Move the major tag
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.notes.outputs.tag }}
         run: |
           major="${TAG%%.*}"
           git tag -f "$major" "$TAG"

@@ -32,6 +32,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Setup Bun (oven-sh/setup-bun v2.2.0)
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      - name: Test the release script
+        run: bun test scripts
       - name: Install the pinned dg-skills and Copilot CLI
         env:
           BIN_DIR: ${{ runner.temp }}/thrashley/bin
