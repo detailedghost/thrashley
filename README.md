@@ -232,6 +232,7 @@ blocks a bad PR.
 | `heading` | `Code Review` | The summary heading. |
 | `max-comments` | none | Most inline comments per review, highest tier first. |
 | `sass` | `false` | Adds one joke line to the summary. See [Sass](#sass). |
+| `improvements` | `false` | Posts up to 3 optional improvement comments, marked 💡. They never count toward the verdict. |
 | `dry-run` | `false` | Reviews, but posts nothing. |
 | `fail-on-request-changes` | `true` | Fails the job on Request changes, so it can be a required check. |
 | `review-forks` | `false` | Reviews PRs from forks. Forks get no secrets, so this rarely works. |
