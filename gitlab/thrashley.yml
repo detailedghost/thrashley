@@ -6,7 +6,7 @@ thrashley:
   variables:
     GIT_STRATEGY: none
     THRASHLEY_REF: v1
-    DG_SKILLS_VERSION: 1.23.0
+    DG_SKILLS_VERSION: 1.25.1
     COPILOT_CLI_VERSION: 1.0.103
     GLAB_VERSION: 1.123.0
     THRASHLEY_POLICY: .gitlab/thrashley.yml
