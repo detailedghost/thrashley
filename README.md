@@ -35,7 +35,8 @@ posts inline comments that start with a tier, a summary in a fixed shape, and a 
 
 ### Prerequisites
 
-- A GitHub repo where you can add workflows and secrets.
+- A GitHub repo where you can add workflows and secrets, or a GitLab project where you can add CI/CD variables. See
+  [GitLab](#gitlab).
 - A model backend. The default is GitHub Copilot, which needs a user with a Copilot seat.
 - Optional: a review rules doc (`docs/code_review.md`) and a policy file (`.github/thrashley.yml`). See
   [Add your own rules](#add-your-own-rules).
@@ -214,6 +215,43 @@ blocks a bad PR.
 
 </details>
 
+<details>
+<summary><strong>GitLab</strong></summary>
+
+#### GitLab
+
+Thrashley also runs as a GitLab CI job on merge request pipelines. It posts inline comments and a summary note, and
+it approves the MR or requests changes the same way it does on GitHub.
+
+1. Create a group access token with the `api` scope and the Developer role. Reviews post as the token's bot user. Group
+   access tokens need GitLab Premium on gitlab.com. On the Free tier, use a project access token in each project.
+1. In the group's CI/CD variables, add the token as `THRASHLEY_GITLAB_TOKEN`, and the Copilot token as
+   `COPILOT_GITHUB_TOKEN`. Mark both as masked. Do not mark them as protected, because merge request pipelines run on
+   unprotected branches.
+1. Include the template in `.gitlab-ci.yml`, pinned to a release tag:
+
+```yaml
+include:
+  - remote: https://raw.githubusercontent.com/detailedghost/thrashley/v1.1.0/gitlab/thrashley.yml
+
+thrashley:
+  variables:
+    THRASHLEY_REF: v1.1.0
+```
+
+Set `THRASHLEY_REF` to the same tag as the include, so the job runs the install script from that release. The job
+needs a `test` stage, which GitLab has by default.
+
+Every action input is a `THRASHLEY_*` variable on the job: the input name in upper case, with `_` for `-`. For
+example, `verdict: comment` becomes `THRASHLEY_VERDICT: comment`. The policy file defaults to `.gitlab/thrashley.yml`.
+
+To make the approval count, add the bot user to an approval rule. To block a merge on Request changes, make the
+`thrashley` job required, or turn on **Pipelines must succeed**.
+
+On GitLab, every round reviews the full diff, not only the commits since the last round.
+
+</details>
+
 ## Inputs
 
 | Input | Default | What it does |
@@ -350,6 +388,8 @@ For a backend other than `copilot`, set `unsafe-allow-shell: true`, and pass its
   PR author.
 - Use the `pull_request` trigger only. Never use `pull_request_target`, which gives a PR from a fork your secrets.
 - PRs from forks are skipped by default.
+- On GitLab, the review step runs with an empty environment plus the Copilot token and the `THRASHLEY_*` inputs. It
+  never sees `THRASHLEY_GITLAB_TOKEN` or the job token.
 
 See [SECURITY.md](SECURITY.md) to report a problem.
 
@@ -362,6 +402,7 @@ See [SECURITY.md](SECURITY.md) to report a problem.
 | `the copilot backend needs the copilot-token input` | Add the `COPILOT_GITHUB_TOKEN` secret and pass it. |
 | `backend … cannot run without shell tools` | Use `copilot`, or set `unsafe-allow-shell: true`. |
 | `Thrashley skips PR … from fork` | Expected. Forks get no secrets. |
+| `set the THRASHLEY_GITLAB_TOKEN CI/CD variable` | Add the GitLab token variable. See [GitLab](#gitlab). |
 
 ## Contributing
 
